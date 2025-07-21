@@ -1,8 +1,8 @@
 [package]
 name = "cache-rs"
 version = "0.1.0"
-edition = "2025"
-authors = [Peter Shi]
+edition = "2024"
+authors = ["Peter Shi"]
 description = "A generic cache implementation with expiration support"
 license = "MIT"
 repository = "https://github.com/peterzzshi/cache-rs"
