@@ -37,11 +37,18 @@ pub struct CacheConfig<K, V, F, G> {
 }
 
 /// A generic cache with expiration support
-pub struct Cache<K, V, F, G> 
+pub struct Cache<K, V, F, G>
 where
     K: Clone,
     V: Clone,
-    F: Fn(K) -> Pin<Box<dyn Future<Output = Result<Expiring<V>, Box<dyn std::error::Error + Send + Sync>>> + Send>>,
+    F: Fn(
+        K,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<Expiring<V>, Box<dyn std::error::Error + Send + Sync>>>
+                + Send,
+        >,
+    >,
     G: Fn(&K) -> String,
 {
     map: std::sync::RwLock<HashMap<String, Expiring<V>>>,
@@ -54,7 +61,14 @@ impl<K, V, F, G> Cache<K, V, F, G>
 where
     K: Clone + Send + Sync,
     V: Clone + Send + Sync,
-    F: Fn(K) -> Pin<Box<dyn Future<Output = Result<Expiring<V>, Box<dyn std::error::Error + Send + Sync>>> + Send>>,
+    F: Fn(
+        K,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<Expiring<V>, Box<dyn std::error::Error + Send + Sync>>>
+                + Send,
+        >,
+    >,
     G: Fn(&K) -> String + Send + Sync,
 {
     /// Creates a new cache with the given loader and key mapper functions
@@ -83,9 +97,12 @@ where
     }
 
     /// Gets a value with its expiration information
-    pub async fn get_with_expiry(&self, key: K) -> Result<Expiring<V>, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn get_with_expiry(
+        &self,
+        key: K,
+    ) -> Result<Expiring<V>, Box<dyn std::error::Error + Send + Sync>> {
         let identifier = (self.get_key_for_map)(&key);
-        
+
         // Try to get non-expired item
         if let Some(item) = self.get_non_expired(&identifier) {
             return Ok(item);
@@ -126,13 +143,17 @@ where
         None
     }
 
-    async fn load_and_cache_item(&self, key: K, identifier: String) -> Result<Expiring<V>, Box<dyn std::error::Error + Send + Sync>> {
+    async fn load_and_cache_item(
+        &self,
+        key: K,
+        identifier: String,
+    ) -> Result<Expiring<V>, Box<dyn std::error::Error + Send + Sync>> {
         let item = (self.load)(key).await?;
-        
+
         if let Ok(mut map) = self.map.write() {
             map.insert(identifier, item.clone());
         }
-        
+
         Ok(item)
     }
 }
