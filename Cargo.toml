@@ -4,18 +4,27 @@ version = "0.1.0"
 edition = "2024"
 authors = ["Peter Shi"]
 description = "A generic cache implementation with expiration support"
-license = "MIT"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/peterzzshi/cache-rs"
-keywords = ["cache", "expiring", "async"]
-categories = ["caching", "data-structures"]
+keywords = ["cache", "expiring", "async", "generic"]
+categories = ["caching", "data-structures", "asynchronous"]
+readme = "README.md"
+
+[lib]
+name = "cache_rs"
+path = "src/lib.rs"
 
 [dependencies]
-tokio = { version = "1.0", features = ["time", "rt", "macros", "rt-multi-thread"] }  # Added rt-multi-thread
-chrono = { version = "0.4", features = ["serde"] }
+tokio = { version = "1.0", features = ["time", "rt"] }
 
 [dev-dependencies]
+tokio = { version = "1.0", features = ["time", "rt", "macros", "rt-multi-thread"] }
 tokio-test = "0.4"
 
 [[example]]
 name = "demo"
 path = "example/demo.rs"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
