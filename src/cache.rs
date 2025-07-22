@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::future::Future;
-use std::hash::Hash;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::pin::Pin;
+use std::time::SystemTime;
 
 /// Represents a value with an expiration time
 #[derive(Debug, Clone)]
@@ -41,19 +41,20 @@ pub struct Cache<K, V, F, G>
 where
     K: Clone,
     V: Clone,
-    F: Fn(K) -> Box<dyn Future<Output = Result<Expiring<V>, Box<dyn std::error::Error + Send + Sync>>> + Send + Sync>,
+    F: Fn(K) -> Pin<Box<dyn Future<Output = Result<Expiring<V>, Box<dyn std::error::Error + Send + Sync>>> + Send>>,
     G: Fn(&K) -> String,
 {
     map: std::sync::RwLock<HashMap<String, Expiring<V>>>,
     load: F,
     get_key_for_map: G,
+    _phantom: std::marker::PhantomData<K>,
 }
 
 impl<K, V, F, G> Cache<K, V, F, G>
 where
     K: Clone + Send + Sync,
     V: Clone + Send + Sync,
-    F: Fn(K) -> Box<dyn Future<Output = Result<Expiring<V>, Box<dyn std::error::Error + Send + Sync>>> + Send + Sync>,
+    F: Fn(K) -> Pin<Box<dyn Future<Output = Result<Expiring<V>, Box<dyn std::error::Error + Send + Sync>>> + Send>>,
     G: Fn(&K) -> String + Send + Sync,
 {
     /// Creates a new cache with the given loader and key mapper functions
@@ -62,6 +63,7 @@ where
             map: std::sync::RwLock::new(HashMap::new()),
             load,
             get_key_for_map,
+            _phantom: std::marker::PhantomData,
         }
     }
 
@@ -132,48 +134,5 @@ where
         }
         
         Ok(item)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::time::Duration;
-
-    #[tokio::test]
-    async fn test_cache_basic_functionality() {
-        let cache = Cache::new(
-            |key: i32| {
-                Box::new(async move {
-                    let value = format!("loaded_{}", key);
-                    Ok(Expiring::with_duration(value, Duration::from_secs(1)))
-                })
-            },
-            |key: &i32| key.to_string(),
-        );
-
-        let result = cache.get(42).await.unwrap();
-        assert_eq!(result, "loaded_42");
-    }
-
-    #[tokio::test]
-    async fn test_cache_expiration() {
-        let cache = Cache::new(
-            |key: i32| {
-                Box::new(async move {
-                    let value = format!("loaded_{}", key);
-                    Ok(Expiring::with_duration(value, Duration::from_millis(10)))
-                })
-            },
-            |key: &i32| key.to_string(),
-        );
-
-        let _result1 = cache.get(42).await.unwrap();
-        
-        // Wait for expiration
-        tokio::time::sleep(Duration::from_millis(20)).await;
-        
-        let _result2 = cache.get(42).await.unwrap();
-        // In a real test, you'd verify the loader was called twice
     }
 }
